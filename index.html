@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#176b57">
 <title>Friend Money Manager</title>
 
 <style>
@@ -16,11 +17,7 @@ body {
   font-family: Arial, sans-serif;
 }
 
-.container {
-  max-width: 500px;
-  margin: auto;
-}
-
+.container { max-width: 540px; margin: auto; }
 h1 { font-size: 25px; margin-bottom: 5px; }
 .subtitle { color: #68756f; margin-bottom: 20px; }
 
@@ -32,18 +29,55 @@ h1 { font-size: 25px; margin-bottom: 5px; }
   box-shadow: 0 3px 12px #00000008;
 }
 
+label {
+  display: block;
+  font-weight: bold;
+  margin: 12px 0 7px;
+}
+
+input, select {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #d5ded9;
+  border-radius: 9px;
+  font-size: 16px;
+  background: white;
+}
+
+button {
+  border: none;
+  padding: 12px;
+  border-radius: 9px;
+  font-size: 15px;
+  cursor: pointer;
+}
+
+button:focus-visible, input:focus-visible, select:focus-visible {
+  outline: 2px solid #176b57;
+  outline-offset: 2px;
+}
+
+button:disabled { opacity: .6; cursor: not-allowed; }
+
+.primary { background: #176b57; color: white; }
+.secondary { background: #edf1ef; color: #1d2b25; }
+.danger { background: #fff0f0; color: #a12626; }
+
+.full { width: 100%; }
+.actions { display: flex; gap: 8px; margin-top: 12px; }
+.actions button { flex: 1; }
+
 .balance {
   background: #176b57;
   color: white;
 }
 
 .balance h2 { font-size: 14px; font-weight: normal; }
-.balance h3 { font-size: 34px; margin: 10px 0; }
+.balance h3 { font-size: 34px; margin: 10px 0; overflow-wrap: anywhere; }
 
 .stats {
   display: flex;
-  justify-content: space-between;
-  gap: 12px;
+  gap: 10px;
   margin-top: 20px;
 }
 
@@ -58,39 +92,9 @@ h1 { font-size: 25px; margin-bottom: 5px; }
 .stats small { display: block; margin-bottom: 7px; }
 .stats strong { overflow-wrap: anywhere; }
 
-label {
-  display: block;
-  font-weight: bold;
-  margin: 12px 0 7px;
-}
-
-input {
-  width: 100%;
-  padding: 12px;
-  border: 1px solid #d5ded9;
-  border-radius: 9px;
-  font-size: 16px;
-}
-
-button {
-  border: none;
-  padding: 12px;
-  border-radius: 9px;
-  font-size: 15px;
-  cursor: pointer;
-}
-
 .types { display: flex; gap: 8px; margin: 15px 0; }
 .types button { flex: 1; background: #edf1ef; }
 .types button.active { background: #d8f1e5; color: #176b57; }
-
-.submit {
-  width: 100%;
-  background: #176b57;
-  color: white;
-  margin-top: 16px;
-  font-weight: bold;
-}
 
 .entry {
   padding: 13px 0;
@@ -100,11 +104,20 @@ button {
   gap: 10px;
 }
 
+.entry:last-child { border-bottom: none; }
 .entry small { display: block; color: #68756f; margin-top: 5px; }
-.entry button { padding: 5px; background: #f1f5f3; margin-top: 5px; }
+.entry button { padding: 7px; margin-top: 7px; }
+.entry-right { text-align: right; flex-shrink: 0; }
 .gave { color: #176b57; }
 .received { color: #354c8c; }
 .empty { color: #68756f; text-align: center; padding: 15px 0; }
+.hint { color: #68756f; font-size: 13px; line-height: 1.5; }
+.total-card { border: 1px solid #dce6e0; }
+.total-number { font-size: 25px; font-weight: bold; margin-top: 8px; }
+.friend-row { display: flex; align-items: center; gap: 10px; }
+.friend-row select { flex: 1; min-width: 0; }
+.friend-row button { flex-shrink: 0; }
+.section-title { margin-top: 0; }
 </style>
 </head>
 
@@ -112,15 +125,25 @@ button {
 <div class="container">
 
 <h1>💰 Friend Money Manager</h1>
-<p class="subtitle">Keep track of money between you and your friend.</p>
+<p class="subtitle">All your friends. All your transactions. One app.</p>
 
 <div class="card">
-  <label for="friend">Friend's Name</label>
-  <input id="friend" placeholder="Enter friend's name">
+  <label for="friendSelect">Select Friend</label>
+  <div class="friend-row">
+    <select id="friendSelect"></select>
+    <button type="button" class="primary" id="addFriendBtn">+ Add</button>
+  </div>
+  <p class="hint">Choose a friend to view their balance and transaction history.</p>
+</div>
+
+<div class="card total-card">
+  <strong>🌐 Total Net Balance — All Friends</strong>
+  <div id="totalBalance" class="total-number">₹0</div>
+  <p id="totalMessage" class="hint">All accounts are settled.</p>
 </div>
 
 <div class="card balance">
-  <h2>Current Balance</h2>
+  <h2 id="balanceHeading">Current Balance</h2>
   <h3 id="balance">₹0</h3>
   <p id="message">You are settled up!</p>
 
@@ -137,13 +160,11 @@ button {
 </div>
 
 <div class="card">
-  <h2>Add Transaction</h2>
+  <h2 class="section-title">Add Transaction</h2>
 
   <div class="types">
-    <button type="button" id="giveBtn" class="active"
-      onclick="setType('gave')">↗ I Gave</button>
-    <button type="button" id="receiveBtn"
-      onclick="setType('received')">↙ I Received</button>
+    <button type="button" id="giveBtn" class="active">↗ I Gave</button>
+    <button type="button" id="receiveBtn">↙ I Received</button>
   </div>
 
   <form id="form">
@@ -155,52 +176,164 @@ button {
     <input id="date" type="date" required>
 
     <label for="note">Description</label>
-    <input id="note" placeholder="e.g. Lunch, petrol, shopping">
+    <input id="note" maxlength="200"
+      placeholder="e.g. Lunch, petrol, shopping">
 
-    <button class="submit" type="submit">+ Add Transaction</button>
+    <button class="primary full" type="submit" style="margin-top:16px">
+      + Add Transaction
+    </button>
   </form>
 </div>
 
 <div class="card">
-  <h2>Transaction History</h2>
+  <h2 class="section-title">Transaction History</h2>
+  <p id="historySubtitle" class="hint"></p>
   <div id="history"></div>
-  <button type="button" onclick="exportCSV()">Export Transactions</button>
+  <button type="button" class="secondary full" id="exportBtn">
+    Export All Transactions (CSV)
+  </button>
+</div>
+
+<div class="card">
+  <h2 class="section-title">Manage Friends</h2>
+  <div id="friendList"></div>
+  <p class="hint">
+    A friend can only be deleted when they have no transactions.
+    Export your records regularly as a backup.
+  </p>
 </div>
 
 </div>
 
 <script>
-let type = "gave";
-let transactions = [];
+"use strict";
 
-try {
-  transactions = JSON.parse(
-    localStorage.getItem("friendTransactions") || "[]"
-  );
-  if (!Array.isArray(transactions)) transactions = [];
-} catch {
-  transactions = [];
+const STORAGE_FRIENDS = "friendManagerV2Friends";
+const STORAGE_TRANSACTIONS = "friendManagerV2Transactions";
+const DEFAULT_FRIEND = "Aditya Sarap";
+
+let friends = [];
+let transactions = [];
+let selectedFriendId = "";
+let type = "gave";
+
+function makeId() {
+  if (window.crypto && crypto.randomUUID) {
+    return crypto.randomUUID();
+  }
+  return "id-" + Date.now() + "-" + Math.random().toString(36).slice(2);
 }
 
-document.getElementById("friend").value =
-  localStorage.getItem("friendName") || "";
+function readArray(key) {
+  try {
+    const value = JSON.parse(localStorage.getItem(key) || "[]");
+    return Array.isArray(value) ? value : [];
+  } catch {
+    return [];
+  }
+}
+
+// One-time migration from the previous app.
+// Existing records are assigned to the previously saved friend name.
+function initialiseData() {
+  const hasNewData =
+    localStorage.getItem(STORAGE_FRIENDS) !== null ||
+    localStorage.getItem(STORAGE_TRANSACTIONS) !== null;
+
+  if (hasNewData) {
+    friends = readArray(STORAGE_FRIENDS);
+    transactions = readArray(STORAGE_TRANSACTIONS);
+
+    if (friends.length === 0) {
+      friends = [{ id: makeId(), name: DEFAULT_FRIEND }];
+    }
+
+    const validFriendIds = new Set(friends.map(f => f.id));
+
+    // Recover transactions if a friend record is unexpectedly missing.
+    const missingIds = new Set(
+      transactions
+        .filter(t => !validFriendIds.has(t.friendId))
+        .map(t => t.friendId)
+        .filter(Boolean)
+    );
+
+    if (missingIds.size) {
+      transactions = transactions.filter(t =>
+        !t.friendId || validFriendIds.has(t.friendId)
+      );
+    }
+
+    selectedFriendId = friends[0].id;
+    return;
+  }
+
+  // Read the previous version's data before writing new storage keys.
+  const oldTransactions = readArray("friendTransactions");
+  let oldFriendName = "";
+
+  try {
+    oldFriendName = (localStorage.getItem("friendName") || "").trim();
+  } catch {}
+
+  const name = oldFriendName || DEFAULT_FRIEND;
+  const friend = { id: makeId(), name };
+
+  friends = [friend];
+  transactions = oldTransactions.map(t => ({
+    id: t.id || makeId(),
+    friendId: friend.id,
+    type: t.type === "received" ? "received" : "gave",
+    amount: Number(t.amount) || 0,
+    date: t.date || today(),
+    note: String(t.note || "")
+  })).filter(t => t.amount > 0);
+
+  selectedFriendId = friend.id;
+  save();
+}
+
+function save() {
+  try {
+    localStorage.setItem(STORAGE_FRIENDS, JSON.stringify(friends));
+    localStorage.setItem(STORAGE_TRANSACTIONS, JSON.stringify(transactions));
+    return true;
+  } catch (error) {
+    alert("Could not save data. Your browser storage may be full. Export your records and try again.");
+    return false;
+  }
+}
 
 function today() {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
 }
 
-document.getElementById("date").value = today();
-
-document.getElementById("friend").addEventListener("input", e => {
-  localStorage.setItem("friendName", e.target.value);
-  render();
-});
-
 function money(value) {
   return "₹" + Number(value).toLocaleString("en-IN", {
+    minimumFractionDigits: 0,
     maximumFractionDigits: 2
   });
+}
+
+function getSelectedFriend() {
+  return friends.find(f => f.id === selectedFriendId);
+}
+
+function getTotals(list) {
+  const given = list
+    .filter(t => t.type === "gave")
+    .reduce((sum, t) => sum + Number(t.amount), 0);
+
+  const received = list
+    .filter(t => t.type === "received")
+    .reduce((sum, t) => sum + Number(t.amount), 0);
+
+  return {
+    given,
+    received,
+    balance: Math.round((given - received) * 100) / 100
+  };
 }
 
 function setType(value) {
@@ -209,8 +342,62 @@ function setType(value) {
   document.getElementById("receiveBtn").classList.toggle("active", value === "received");
 }
 
-document.getElementById("form").addEventListener("submit", e => {
-  e.preventDefault();
+document.getElementById("giveBtn").addEventListener("click", () => setType("gave"));
+document.getElementById("receiveBtn").addEventListener("click", () => setType("received"));
+
+function renderFriendSelect() {
+  const select = document.getElementById("friendSelect");
+  select.replaceChildren();
+
+  friends.forEach(friend => {
+    const option = document.createElement("option");
+    option.value = friend.id;
+    option.textContent = friend.name;
+    select.appendChild(option);
+  });
+
+  if (!friends.some(f => f.id === selectedFriendId)) {
+    selectedFriendId = friends[0]?.id || "";
+  }
+
+  select.value = selectedFriendId;
+}
+
+document.getElementById("friendSelect").addEventListener("change", event => {
+  selectedFriendId = event.target.value;
+  render();
+});
+
+document.getElementById("addFriendBtn").addEventListener("click", () => {
+  const entered = prompt("Enter your friend's full name:");
+  if (entered === null) return;
+
+  const name = entered.trim();
+  if (!name) {
+    alert("Please enter a friend's name.");
+    return;
+  }
+
+  const exists = friends.some(f => f.name.toLowerCase() === name.toLowerCase());
+  if (exists) {
+    alert("This friend already exists. Please select their name from the list.");
+    return;
+  }
+
+  const friend = { id: makeId(), name };
+  friends.push(friend);
+  selectedFriendId = friend.id;
+
+  if (save()) render();
+});
+
+document.getElementById("form").addEventListener("submit", event => {
+  event.preventDefault();
+
+  if (!getSelectedFriend()) {
+    alert("Please add or select a friend first.");
+    return;
+  }
 
   const amount = Number(document.getElementById("amount").value);
   const date = document.getElementById("date").value;
@@ -221,114 +408,238 @@ document.getElementById("form").addEventListener("submit", e => {
     return;
   }
 
-  transactions.push({
-    id: Date.now(),
+  const transaction = {
+    id: makeId(),
+    friendId: selectedFriendId,
     type,
     amount: Math.round(amount * 100) / 100,
     date,
     note
-  });
+  };
 
-  save();
+  transactions.push(transaction);
+
+  if (!save()) {
+    transactions.pop();
+    return;
+  }
+
   render();
-
   document.getElementById("form").reset();
   document.getElementById("date").value = today();
   setType("gave");
 });
 
-function save() {
-  localStorage.setItem("friendTransactions", JSON.stringify(transactions));
+function addText(parent, tag, text, className) {
+  const element = document.createElement(tag);
+  element.textContent = text;
+  if (className) element.className = className;
+  parent.appendChild(element);
+  return element;
 }
 
-function render() {
-  const given = transactions
-    .filter(t => t.type === "gave")
-    .reduce((sum, t) => sum + t.amount, 0);
-
-  const received = transactions
-    .filter(t => t.type === "received")
-    .reduce((sum, t) => sum + t.amount, 0);
-
-  const balance = Math.round((given - received) * 100) / 100;
-  const friend = document.getElementById("friend").value.trim() || "Your friend";
-
-  document.getElementById("given").textContent = money(given);
-  document.getElementById("received").textContent = money(received);
-  document.getElementById("balance").textContent = money(Math.abs(balance));
-
-  document.getElementById("message").textContent =
-    balance > 0 ? `${friend} owes you this amount.` :
-    balance < 0 ? `You owe ${friend} this amount.` :
-    "You are settled up!";
-
+function renderHistory(friendTransactions) {
   const history = document.getElementById("history");
   history.replaceChildren();
 
-  if (transactions.length === 0) {
-    history.innerHTML = '<div class="empty">No transactions yet.</div>';
+  if (!friendTransactions.length) {
+    addText(history, "div", "No transactions for this friend yet.", "empty");
     return;
   }
 
-  [...transactions].sort((a, b) => b.id - a.id).forEach(t => {
+  [...friendTransactions]
+    .sort((a, b) => String(b.date).localeCompare(String(a.date)))
+    .forEach(t => {
+      const row = document.createElement("div");
+      row.className = "entry";
+
+      const details = document.createElement("div");
+      addText(
+        details,
+        "strong",
+        t.note || (t.type === "gave" ? "Money given" : "Money received")
+      );
+      addText(details, "small", t.date);
+
+      const right = document.createElement("div");
+      right.className = "entry-right";
+
+      addText(
+        right,
+        "strong",
+        (t.type === "gave" ? "+" : "−") + money(t.amount),
+        t.type
+      );
+
+      const del = document.createElement("button");
+      del.type = "button";
+      del.className = "danger";
+      del.textContent = "Delete";
+      del.addEventListener("click", () => {
+        if (!confirm("Delete this transaction permanently?")) return;
+
+        const oldTransactions = transactions;
+        transactions = transactions.filter(x => x.id !== t.id);
+
+        if (!save()) {
+          transactions = oldTransactions;
+          return;
+        }
+
+        render();
+      });
+
+      right.appendChild(del);
+      row.append(details, right);
+      history.appendChild(row);
+    });
+}
+
+function renderFriendList() {
+  const list = document.getElementById("friendList");
+  list.replaceChildren();
+
+  friends.forEach(friend => {
+    const friendTransactions = transactions.filter(t => t.friendId === friend.id);
+    const totals = getTotals(friendTransactions);
+
     const row = document.createElement("div");
     row.className = "entry";
 
     const details = document.createElement("div");
-    const title = document.createElement("strong");
-    title.textContent = t.note || (t.type === "gave" ? "Money given" : "Money received");
-
-    const date = document.createElement("small");
-    date.textContent = t.date;
-
-    details.append(title, date);
+    addText(details, "strong", friend.name);
+    addText(details, "small",
+      `${friendTransactions.length} transaction(s) · ` +
+      (totals.balance > 0
+        ? "Owes you " + money(totals.balance)
+        : totals.balance < 0
+          ? "You owe " + money(Math.abs(totals.balance))
+          : "Settled up")
+    );
 
     const right = document.createElement("div");
-    right.style.textAlign = "right";
+    right.className = "entry-right";
 
-    const amount = document.createElement("strong");
-    amount.className = t.type;
-    amount.textContent = (t.type === "gave" ? "+" : "−") + money(t.amount);
+    const selectButton = document.createElement("button");
+    selectButton.type = "button";
+    selectButton.className = "secondary";
+    selectButton.textContent = "View";
+    selectButton.addEventListener("click", () => {
+      selectedFriendId = friend.id;
+      render();
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    });
+    right.appendChild(selectButton);
 
-    const del = document.createElement("button");
-    del.type = "button";
-    del.textContent = "Delete";
-    del.onclick = () => {
-      if (confirm("Delete this transaction?")) {
-        transactions = transactions.filter(x => x.id !== t.id);
-        save();
-        render();
+    const deleteButton = document.createElement("button");
+    deleteButton.type = "button";
+    deleteButton.className = "danger";
+    deleteButton.textContent = "Remove";
+    deleteButton.disabled = friendTransactions.length > 0;
+    deleteButton.title = deleteButton.disabled
+      ? "Delete their transactions first"
+      : "Remove this friend";
+
+    deleteButton.addEventListener("click", () => {
+      if (friendTransactions.length) {
+        alert("This friend has transactions. Delete those transactions first.");
+        return;
       }
-    };
+      if (!confirm(`Remove ${friend.name} from your friend list?`)) return;
 
-    right.append(amount, document.createElement("br"), del);
+      const oldFriends = friends;
+      friends = friends.filter(f => f.id !== friend.id);
+      if (!friends.length) friends = [{ id: makeId(), name: DEFAULT_FRIEND }];
+      if (!friends.some(f => f.id === selectedFriendId)) {
+        selectedFriendId = friends[0].id;
+      }
+
+      if (!save()) {
+        friends = oldFriends;
+        return;
+      }
+      render();
+    });
+
+    right.appendChild(deleteButton);
     row.append(details, right);
-    history.appendChild(row);
+    list.appendChild(row);
   });
 }
 
-function exportCSV() {
+function render() {
+  renderFriendSelect();
+
+  const friend = getSelectedFriend();
+  const friendTransactions = transactions.filter(t => t.friendId === selectedFriendId);
+  const totals = getTotals(friendTransactions);
+  const allTotals = getTotals(transactions);
+
+  document.getElementById("balanceHeading").textContent =
+    friend ? `${friend.name}'s Balance` : "Current Balance";
+
+  document.getElementById("given").textContent = money(totals.given);
+  document.getElementById("received").textContent = money(totals.received);
+  document.getElementById("balance").textContent = money(Math.abs(totals.balance));
+
+  document.getElementById("message").textContent =
+    totals.balance > 0 ? `${friend.name} owes you this amount.` :
+    totals.balance < 0 ? `You owe ${friend.name} this amount.` :
+    "You are settled up!";
+
+  document.getElementById("totalBalance").textContent =
+    (allTotals.balance < 0 ? "−" : "") + money(Math.abs(allTotals.balance));
+
+  document.getElementById("totalMessage").textContent =
+    allTotals.balance > 0 ? "Overall, your friends owe you more than you owe them." :
+    allTotals.balance < 0 ? "Overall, you owe more than your friends owe you." :
+    "Your combined net balance is settled.";
+
+  document.getElementById("historySubtitle").textContent =
+    friend ? `Showing transactions for ${friend.name}` : "";
+
+  renderHistory(friendTransactions);
+  renderFriendList();
+}
+
+document.getElementById("exportBtn").addEventListener("click", () => {
   const rows = [
-    ["Date", "Type", "Amount", "Description"],
-    ...transactions.map(t => [
-      t.date, t.type, t.amount, t.note || ""
-    ])
+    ["Friend", "Date", "Type", "Amount", "Description"],
+    ...transactions.map(t => {
+      const friend = friends.find(f => f.id === t.friendId);
+      return [
+        friend ? friend.name : "Unknown",
+        t.date,
+        t.type,
+        t.amount,
+        t.note || ""
+      ];
+    })
   ];
 
   const csv = rows.map(row =>
     row.map(value => '"' + String(value).replace(/"/g, '""') + '"').join(",")
   ).join("\r\n");
 
-  const blob = new Blob(["\ufeff" + csv], {type: "text/csv;charset=utf-8"});
+  const blob = new Blob(["\ufeff" + csv], {
+    type: "text/csv;charset=utf-8"
+  });
   const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = "friend-money-transactions.csv";
-  a.click();
-  URL.revokeObjectURL(url);
-}
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = "friend-money-all-transactions.csv";
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+});
 
+initialiseData();
+document.getElementById("date").value = today();
 render();
+</script>
+</body>
+</html>
 </script>
 </body>
 </html>
