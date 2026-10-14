@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Friend Money Manager</title>
+
+<style>
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  padding: 20px 12px;
+  background: #f1f5f3;
+  color: #1d2b25;
+  font-family: Arial, sans-serif;
+}
+
+.container {
+  max-width: 500px;
+  margin: auto;
+}
+
+h1 { font-size: 25px; margin-bottom: 5px; }
+.subtitle { color: #68756f; margin-bottom: 20px; }
+
+.card {
+  background: white;
+  padding: 18px;
+  border-radius: 16px;
+  margin-bottom: 15px;
+  box-shadow: 0 3px 12px #00000008;
+}
+
+.balance {
+  background: #176b57;
+  color: white;
+}
+
+.balance h2 { font-size: 14px; font-weight: normal; }
+.balance h3 { font-size: 34px; margin: 10px 0; }
+
+.stats {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.stats div {
+  background: #ffffff20;
+  border-radius: 10px;
+  padding: 12px;
+  flex: 1;
+  min-width: 0;
+}
+
+.stats small { display: block; margin-bottom: 7px; }
+.stats strong { overflow-wrap: anywhere; }
+
+label {
+  display: block;
+  font-weight: bold;
+  margin: 12px 0 7px;
+}
+
+input {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #d5ded9;
+  border-radius: 9px;
+  font-size: 16px;
+}
+
+button {
+  border: none;
+  padding: 12px;
+  border-radius: 9px;
+  font-size: 15px;
+  cursor: pointer;
+}
+
+.types { display: flex; gap: 8px; margin: 15px 0; }
+.types button { flex: 1; background: #edf1ef; }
+.types button.active { background: #d8f1e5; color: #176b57; }
+
+.submit {
+  width: 100%;
+  background: #176b57;
+  color: white;
+  margin-top: 16px;
+  font-weight: bold;
+}
+
+.entry {
+  padding: 13px 0;
+  border-bottom: 1px solid #e7ece9;
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.entry small { display: block; color: #68756f; margin-top: 5px; }
+.entry button { padding: 5px; background: #f1f5f3; margin-top: 5px; }
+.gave { color: #176b57; }
+.received { color: #354c8c; }
+.empty { color: #68756f; text-align: center; padding: 15px 0; }
+</style>
+</head>
+
+<body>
+<div class="container">
+
+<h1>💰 Friend Money Manager</h1>
+<p class="subtitle">Keep track of money between you and your friend.</p>
+
+<div class="card">
+  <label for="friend">Friend's Name</label>
+  <input id="friend" placeholder="Enter friend's name">
+</div>
+
+<div class="card balance">
+  <h2>Current Balance</h2>
+  <h3 id="balance">₹0</h3>
+  <p id="message">You are settled up!</p>
+
+  <div class="stats">
+    <div>
+      <small>You Gave</small>
+      <strong id="given">₹0</strong>
+    </div>
+    <div>
+      <small>You Received</small>
+      <strong id="received">₹0</strong>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <h2>Add Transaction</h2>
+
+  <div class="types">
+    <button type="button" id="giveBtn" class="active"
+      onclick="setType('gave')">↗ I Gave</button>
+    <button type="button" id="receiveBtn"
+      onclick="setType('received')">↙ I Received</button>
+  </div>
+
+  <form id="form">
+    <label for="amount">Amount (₹)</label>
+    <input id="amount" type="number" min="0.01" step="0.01"
+      placeholder="Enter amount" required>
+
+    <label for="date">Date</label>
+    <input id="date" type="date" required>
+
+    <label for="note">Description</label>
+    <input id="note" placeholder="e.g. Lunch, petrol, shopping">
+
+    <button class="submit" type="submit">+ Add Transaction</button>
+  </form>
+</div>
+
+<div class="card">
+  <h2>Transaction History</h2>
+  <div id="history"></div>
+  <button type="button" onclick="exportCSV()">Export Transactions</button>
+</div>
+
+</div>
+
+<script>
+let type = "gave";
+let transactions = [];
+
+try {
+  transactions = JSON.parse(
+    localStorage.getItem("friendTransactions") || "[]"
+  );
+  if (!Array.isArray(transactions)) transactions = [];
+} catch {
+  transactions = [];
+}
+
+document.getElementById("friend").value =
+  localStorage.getItem("friendName") || "";
+
+function today() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+}
+
+document.getElementById("date").value = today();
+
+document.getElementById("friend").addEventListener("input", e => {
+  localStorage.setItem("friendName", e.target.value);
+  render();
+});
+
+function money(value) {
+  return "₹" + Number(value).toLocaleString("en-IN", {
+    maximumFractionDigits: 2
+  });
+}
+
+function setType(value) {
+  type = value;
+  document.getElementById("giveBtn").classList.toggle("active", value === "gave");
+  document.getElementById("receiveBtn").classList.toggle("active", value === "received");
+}
+
+document.getElementById("form").addEventListener("submit", e => {
+  e.preventDefault();
+
+  const amount = Number(document.getElementById("amount").value);
+  const date = document.getElementById("date").value;
+  const note = document.getElementById("note").value.trim();
+
+  if (!Number.isFinite(amount) || amount <= 0 || !date) {
+    alert("Please enter a valid amount and date.");
+    return;
+  }
+
+  transactions.push({
+    id: Date.now(),
+    type,
+    amount: Math.round(amount * 100) / 100,
+    date,
+    note
+  });
+
+  save();
+  render();
+
+  document.getElementById("form").reset();
+  document.getElementById("date").value = today();
+  setType("gave");
+});
+
+function save() {
+  localStorage.setItem("friendTransactions", JSON.stringify(transactions));
+}
+
+function render() {
+  const given = transactions
+    .filter(t => t.type === "gave")
+    .reduce((sum, t) => sum + t.amount, 0);
+
+  const received = transactions
+    .filter(t => t.type === "received")
+    .reduce((sum, t) => sum + t.amount, 0);
+
+  const balance = Math.round((given - received) * 100) / 100;
+  const friend = document.getElementById("friend").value.trim() || "Your friend";
+
+  document.getElementById("given").textContent = money(given);
+  document.getElementById("received").textContent = money(received);
+  document.getElementById("balance").textContent = money(Math.abs(balance));
+
+  document.getElementById("message").textContent =
+    balance > 0 ? `${friend} owes you this amount.` :
+    balance < 0 ? `You owe ${friend} this amount.` :
+    "You are settled up!";
+
+  const history = document.getElementById("history");
+  history.replaceChildren();
+
+  if (transactions.length === 0) {
+    history.innerHTML = '<div class="empty">No transactions yet.</div>';
+    return;
+  }
+
+  [...transactions].sort((a, b) => b.id - a.id).forEach(t => {
+    const row = document.createElement("div");
+    row.className = "entry";
+
+    const details = document.createElement("div");
+    const title = document.createElement("strong");
+    title.textContent = t.note || (t.type === "gave" ? "Money given" : "Money received");
+
+    const date = document.createElement("small");
+    date.textContent = t.date;
+
+    details.append(title, date);
+
+    const right = document.createElement("div");
+    right.style.textAlign = "right";
+
+    const amount = document.createElement("strong");
+    amount.className = t.type;
+    amount.textContent = (t.type === "gave" ? "+" : "−") + money(t.amount);
+
+    const del = document.createElement("button");
+    del.type = "button";
+    del.textContent = "Delete";
+    del.onclick = () => {
+      if (confirm("Delete this transaction?")) {
+        transactions = transactions.filter(x => x.id !== t.id);
+        save();
+        render();
+      }
+    };
+
+    right.append(amount, document.createElement("br"), del);
+    row.append(details, right);
+    history.appendChild(row);
+  });
+}
+
+function exportCSV() {
+  const rows = [
+    ["Date", "Type", "Amount", "Description"],
+    ...transactions.map(t => [
+      t.date, t.type, t.amount, t.note || ""
+    ])
+  ];
+
+  const csv = rows.map(row =>
+    row.map(value => '"' + String(value).replace(/"/g, '""') + '"').join(",")
+  ).join("\r\n");
+
+  const blob = new Blob(["\ufeff" + csv], {type: "text/csv;charset=utf-8"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "friend-money-transactions.csv";
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+render();
+</script>
+</body>
+</html>
